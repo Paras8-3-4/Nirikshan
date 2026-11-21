@@ -80,6 +80,12 @@ export default function DirectoryPage() {
   const [inspectors, setInspectors] = useState<Inspector[]>([]);
   const [includeInactive, setIncludeInactive] = useState(false);
 
+  // Site filter state
+  const [cityFilter, setCityFilter] = useState("");
+  const [countryFilter, setCountryFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [inspectorFilter, setInspectorFilter] = useState("");
+
   // Loading & feedback
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,10 +107,19 @@ export default function DirectoryPage() {
     setLoading(true);
     setError(null);
     try {
-      const q = includeInactive ? "?includeInactive=true" : "";
+      const siteParams = new URLSearchParams();
+      if (includeInactive) siteParams.set("includeInactive", "true");
+      if (cityFilter.trim()) siteParams.set("city", cityFilter.trim());
+      if (countryFilter.trim()) siteParams.set("country", countryFilter.trim());
+      if (typeFilter && typeFilter !== "ALL") siteParams.set("type", typeFilter);
+      if (inspectorFilter) siteParams.set("inspectorId", inspectorFilter);
+
+      const siteQuery = siteParams.toString() ? `?${siteParams.toString()}` : "";
+      const inspectorQuery = includeInactive ? "?includeInactive=true" : "";
+
       const [sitesRes, inspectorsRes] = await Promise.all([
-        fetch(`/api/sites${q}`, { cache: "no-store" }),
-        fetch(`/api/inspectors${q}`, { cache: "no-store" }),
+        fetch(`/api/sites${siteQuery}`, { cache: "no-store" }),
+        fetch(`/api/inspectors${inspectorQuery}`, { cache: "no-store" }),
       ]);
 
       if (!sitesRes.ok) {
@@ -128,7 +143,26 @@ export default function DirectoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [includeInactive]);
+  }, [
+    includeInactive,
+    cityFilter,
+    countryFilter,
+    typeFilter,
+    inspectorFilter,
+  ]);
+
+  function clearSiteFilters() {
+    setCityFilter("");
+    setCountryFilter("");
+    setTypeFilter("ALL");
+    setInspectorFilter("");
+  }
+
+  const hasActiveSiteFilters =
+    cityFilter.trim() !== "" ||
+    countryFilter.trim() !== "" ||
+    typeFilter !== "ALL" ||
+    inspectorFilter !== "";
 
   useEffect(() => {
     loadDirectory();
